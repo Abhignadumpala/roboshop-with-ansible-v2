@@ -1,0 +1,24 @@
+- name: enable mysql 8.4
+  command: dnf module enable mysql:8.4 -y
+
+- name: install mysql server
+  package:
+    name: mysql-server
+    state: present
+
+- name: enable and start mysql
+  service:
+    name: mysqld
+    state: started
+    enabled: yes
+
+- name: check root password already set
+  command: mysql -u root -p{{ mysql_root_password }} -e "SELECT 1"
+  register: root_check
+  ignore_errors: true
+  no_log: true
+
+- name: setup mysql root password
+  command: mysql_secure_installation --set-root-pass "{{ mysql_root_password }}"
+  when: root_check.rc != 0
+  no_log: true
