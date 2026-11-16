@@ -1,5 +1,6 @@
-ansible_user: ec2-user
-ansible_password: "{{ vault_ansible_password }}"
+roboshop_secrets: "{{ lookup('amazon.aws.secretsmanager_secret', 'roboshop/dev', region='us-east-1') | from_json }}"
+ansible_user: "{{ roboshop_secrets.ansible_user }}"
+ansible_password: "{{ roboshop_secrets.ansible_password }}"
 mongodb_host: mongodb.abhignadevops.store
 redis_host: redis.abhignadevops.store
 mysql_host: mysql.abhignadevops.store
@@ -9,8 +10,8 @@ user_host: user.abhignadevops.store
 cart_host: cart.abhignadevops.store
 shipping_host: shipping.abhignadevops.store
 payment_host: payment.abhignadevops.store
-mysql_root_password: "{{ vault_mysql_root_password }}"
-shipping_db_user: "{{ vault_shipping_db_user }}"
-shipping_db_password: "{{ vault_shipping_db_password }}"
-rabbitmq_user: "{{ vault_rabbitmq_user }}"
-rabbitmq_password: "{{ vault_rabbitmq_password }}"
+mysql_root_password: "{{ roboshop_secrets.mysql_root_password }}"
+shipping_db_user: "{{ roboshop_secrets.shipping_db_user }}"
+shipping_db_password: "{{ roboshop_secrets.shipping_db_password }}"
+rabbitmq_user: "{{ roboshop_secrets.rabbitmq_user }}"
+rabbitmq_password: "{{ roboshop_secrets.rabbitmq_password }}"
