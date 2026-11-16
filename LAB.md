@@ -348,7 +348,7 @@ sed -n '/tasks:/,$p' ../roboshop-with-ansible-v1/03-mysql.yaml | tail -n +2 | se
 
 ```yaml
 - name: check root password already set
-  command: mysql -u root -p{{ mysql_root_password }} -e "SELECT 1"
+  command: mysql -h {{ mysql_host }} -u root -p{{ mysql_root_password }} -e "SELECT 1"
   register: root_check
   ignore_errors: true
   no_log: true
@@ -361,6 +361,7 @@ sed -n '/tasks:/,$p' ../roboshop-with-ansible-v1/03-mysql.yaml | tail -n +2 | se
 
 | Line | Meaning |
 |---|---|
+| `-h {{ mysql_host }}` | Log in **over the network**, the same way shipping does. Without `-h` it logs in as `root@localhost`, which has **no** password here, so the check always fails |
 | `register: root_check` | Save the result (`rc` = exit code) |
 | `ignore_errors: true` | A failed login is expected on a new server; don't stop |
 | `when: root_check.rc != 0` | Set the password only when the login failed |
@@ -373,6 +374,12 @@ ansible-playbook -e component=mysql main.yaml
 ```
 
 **Expected:** `failed=0`, and `setup mysql root password` is **skipping** ✅. Idempotent.
+
+> **What I found:** MySQL has **two** root users. `root@%` (network login) has the password; `root@localhost` (login on the MySQL server itself) has **none**. `mysql_secure_installation --set-root-pass` set the password on the network user only. So a check without `-h` failed every run and the password task ran every time. Check it yourself:
+>
+> ```bash
+> ansible mysql -b -m command -a "mysql -e \"SELECT user,host,plugin FROM mysql.user WHERE user='root'\""
+> ```
 
 ---
 
@@ -1344,6 +1351,7 @@ aws secretsmanager delete-secret --secret-id roboshop/dev --recovery-window-in-d
 | `Could not find or access 'cart.service.j2'` | Template not in the role's `templates/` | Copy it into `roles/cart/templates/` |
 | YAML error: `mapping values are not allowed` | Tasks still indented 2 spaces after removing `tasks:` | Each `- name:` must start at column 0 |
 | mysql: `Access denied` on the second run | `mysql_secure_installation` runs again on a server that has a password | Step 13 check (`when: root_check.rc != 0`) |
+| mysql check always `FAILED ...ignoring`, password task always `changed` | Check logs in as `root@localhost` (no password); the password is on `root@%` | Add `-h {{ mysql_host }}` to the check (Step 13) |
 | Handler never runs | Task was `ok`, or the `notify:` name ≠ handler `name:` | Change the file to test; copy the name exactly |
 | `Attempting to decrypt but no vault secrets found` | `vault_password_file` removed while `vault.yaml` still exists | Remove both together (Step 36) |
 | `AccessDeniedException` from the lookup | IAM role can't read the secret | Step 33: right role name, resource `secret:roboshop/*` |

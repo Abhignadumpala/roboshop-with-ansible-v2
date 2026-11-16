@@ -13,7 +13,7 @@
     enabled: yes
 
 - name: check root password already set
-  command: mysql -u root -p{{ mysql_root_password }} -e "SELECT 1"
+  command: mysql -h {{ mysql_host }} -u root -p{{ mysql_root_password }} -e "SELECT 1"
   register: root_check
   ignore_errors: true
   no_log: true
